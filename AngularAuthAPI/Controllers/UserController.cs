@@ -1,6 +1,7 @@
 ﻿using AngularAuthAPI.Context;
 using AngularAuthAPI.Helpers;
 using AngularAuthAPI.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -62,7 +63,7 @@ namespace AngularAuthAPI.Controllers
             userObj.Token = "";
             await _context.Users.AddAsync(userObj);
             await _context.SaveChangesAsync();
-            return Ok(new { Message = "User Registered!" });
+            return Ok(new { Message = "User Added!" });
         }
 
         private async Task<bool> CheckUserNameExistAsync(string username)
@@ -105,7 +106,7 @@ namespace AngularAuthAPI.Controllers
         }
 
 
-
+        [Authorize]
         [HttpGet]
         public async Task<ActionResult<User>> GetAllUser()
         {
