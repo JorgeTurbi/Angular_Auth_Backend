@@ -1,12 +1,15 @@
 ﻿using AngularAuthAPI.Context;
 using AngularAuthAPI.Helpers;
 using AngularAuthAPI.Models;
+using AngularAuthAPI.Models.Dto;
+using AngularAuthAPI.UtilityService;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -17,9 +20,13 @@ namespace AngularAuthAPI.Controllers
     public class UserController : ControllerBase
     {
         private readonly AppDbContext _context;
-        public UserController(AppDbContext appDbContext)
+        private readonly IConfiguration _config;
+        private readonly IEmailService _EmailService;
+        public UserController(AppDbContext appDbContext, IConfiguration config, IEmailService emailService)
         {
             _context = appDbContext;
+            _config = config;
+            _EmailService = emailService;
         }
 
         [HttpPost("authenticate")]
@@ -32,11 +39,18 @@ namespace AngularAuthAPI.Controllers
 
             if(!PasswordHasher.VerifyPassword(userObj.Password,user.Password))
                 return BadRequest("Password is Incorrect");
+
             user.Token = CreateJwt(user);
-            return Ok(new
+            var newAccessToken = user.Token;
+            var newRefreshToken = CreateRefreshToken();
+            user.RefreshToken = newAccessToken;
+            user.RefreshTokenExpiryTime = DateTime.Now.AddDays(5);
+            await _context.SaveChangesAsync();
+
+            return Ok(new TokenApiDto()
             {
-                Toke=user.Token,
-                Message = "Login Success!"
+                AccessToken = newAccessToken,
+                RefreshToken = newRefreshToken
             });
         }
 
@@ -91,14 +105,17 @@ namespace AngularAuthAPI.Controllers
             var identity = new ClaimsIdentity(new Claim[]
             {
                 new Claim(ClaimTypes.Role,user.Role),
-                new Claim(ClaimTypes.Name,$"{user.FirstName}{user.LastName}")
+                new Claim(ClaimTypes.Name,$"{user.Username}")
 
             });
+
             var credentials = new SigningCredentials(new SymmetricSecurityKey(key),SecurityAlgorithms.HmacSha256);
+           
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = identity,
-                Expires = DateTime.Now.AddDays(1),
+                Expires = DateTime.UtcNow.AddMinutes(60),
+               // NotBefore = DateTime.UtcNow,
                 SigningCredentials = credentials,
             };
             var token=jwtTokenHandler.CreateToken(tokenDescriptor);
@@ -106,12 +123,155 @@ namespace AngularAuthAPI.Controllers
         }
 
 
+
+        private string CreateRefreshToken()
+        {
+            var tokenBytes = RandomNumberGenerator.GetBytes(64);
+            var refreshToken = Convert.ToBase64String(tokenBytes);
+
+            var tokenInUser = _context.Users.Any(a=>a.RefreshToken==refreshToken);
+
+            if (tokenInUser)
+            {
+                return CreateRefreshToken();
+                
+            }
+            return refreshToken;
+        }
+        
+        private ClaimsPrincipal GetPrincipleFromExpiredToken(string token)
+        {
+            var key = Encoding.ASCII.GetBytes("veryverysecret....");
+            var tokenValidationparameters = new TokenValidationParameters
+            {
+                ValidateAudience = false,
+                ValidateIssuer = false,
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ValidateLifetime = false,
+            };
+            var tokenHandler = new JwtSecurityTokenHandler();
+            SecurityToken securityToken;
+            var principal = tokenHandler.ValidateToken(token, tokenValidationparameters, out securityToken);
+            var jwtSecurityToken=securityToken as JwtSecurityToken;
+
+            if (jwtSecurityToken == null|| !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256,StringComparison.InvariantCultureIgnoreCase))
+            {
+                throw new SecurityTokenException("This is Invalid Token");
+            }
+
+            return principal;
+
+
+        }
+
         [Authorize]
         [HttpGet]
         public async Task<ActionResult<User>> GetAllUser()
         {
             return Ok(await _context.Users.ToListAsync());
         }
+
+        [HttpPost("refresh")]
+        public async Task<IActionResult> Refresh(TokenApiDto tokenApiDto)
+        {
+            if (tokenApiDto is null)
+                return BadRequest("Invalid Client Request");
+            string accessToken =tokenApiDto.AccessToken;
+            string refreshToken=tokenApiDto.RefreshToken;
+            var principal = GetPrincipleFromExpiredToken(accessToken);
+            var username = principal.Identity.Name;
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+            
+            if (user is null || user.RefreshToken != refreshToken || user.RefreshTokenExpiryTime <= DateTime.Now)
+                return BadRequest("Invalid Request");
+            
+            var newAcccessToken = CreateJwt(user);
+            var newRefreshToken = CreateRefreshToken();
+            user.RefreshToken = newRefreshToken;
+            await _context.SaveChangesAsync();
+            
+            
+            return Ok(new TokenApiDto{ 
+                AccessToken= newAcccessToken,
+                RefreshToken=newRefreshToken               
+            
+            });
+
+
+
+
+           
+            
+        }
+
+
+        [HttpPost("send-reset-email/{email}")]
+        public async Task<IActionResult> SendEmail(string email)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(a => a.Email == email);
+            if (user is null)
+            {
+                return NotFound(new{ 
+                StatusCode=404,
+                Message="email Doesn't Exist"
+                });
+            }
+                var tokenBytes = RandomNumberGenerator.GetBytes(64);
+            var emailToken = Convert.ToBase64String(tokenBytes);
+            user.ResetPasswordToken=emailToken;
+            user.ResetPasswordExpiry=DateTime.Now.AddMinutes(15);
+            string from = _config["EmailSettings:From"];
+            var emailModel = new EmailModel(email,"Reset Password!!",EmailBody.EmailStringBody(email, user.ResetPasswordToken));
+            _EmailService.SendEmail(emailModel);
+            _context.Entry(user).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
+            return Ok(new
+            {
+                StatusCode=200,
+                Message="Email Sent!"
+            });
+        }
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword( ResetPasswordDto resetPasswordDto)
+        {
+            var newToken = resetPasswordDto.EmailToken.Replace(" ","+");
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(a=>a.Email==resetPasswordDto.Email);
+
+            if (user is null)
+            {
+                return NotFound(new
+                {
+                    StatusCode = 404,
+                    Message = "User Doesn't Exist"
+                });
+            }
+            var tokenCode = user.ResetPasswordToken;
+            DateTime emailTokenExpiry = user.ResetPasswordExpiry;
+            if (tokenCode !=resetPasswordDto.EmailToken || emailTokenExpiry<DateTime.Now)
+            {
+                return BadRequest(new
+                {
+                    StatusCode=400,
+                    Message="Invalid Reset Link"
+                });
+            }
+            user.Password = PasswordHasher.HashPassword(resetPasswordDto.NewPassword);
+            _context.Entry(user).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                StatusCode=200,
+                Message="Password Reset Successfully"
+            });
+
+        }
+
+
+
+
+
     }
 
 

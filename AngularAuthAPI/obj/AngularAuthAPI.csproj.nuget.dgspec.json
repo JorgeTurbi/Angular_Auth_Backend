@@ -1,34 +1,27 @@
 {
   "format": 1,
   "restore": {
-    "D:\\cursoAngular\\Angular_Auth_Backend\\AngularAuthAPI\\AngularAuthAPI.csproj": {}
+    "C:\\Users\\Jorge Turbi\\Desktop\\angular_auth\\AngularAuthAPI\\AngularAuthAPI\\AngularAuthAPI.csproj": {}
   },
   "projects": {
-    "D:\\cursoAngular\\Angular_Auth_Backend\\AngularAuthAPI\\AngularAuthAPI.csproj": {
+    "C:\\Users\\Jorge Turbi\\Desktop\\angular_auth\\AngularAuthAPI\\AngularAuthAPI\\AngularAuthAPI.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\cursoAngular\\Angular_Auth_Backend\\AngularAuthAPI\\AngularAuthAPI.csproj",
+        "projectUniqueName": "C:\\Users\\Jorge Turbi\\Desktop\\angular_auth\\AngularAuthAPI\\AngularAuthAPI\\AngularAuthAPI.csproj",
         "projectName": "AngularAuthAPI",
-        "projectPath": "D:\\cursoAngular\\Angular_Auth_Backend\\AngularAuthAPI\\AngularAuthAPI.csproj",
-        "packagesPath": "C:\\Users\\jturbi\\.nuget\\packages\\",
-        "outputPath": "D:\\cursoAngular\\Angular_Auth_Backend\\AngularAuthAPI\\obj\\",
+        "projectPath": "C:\\Users\\Jorge Turbi\\Desktop\\angular_auth\\AngularAuthAPI\\AngularAuthAPI\\AngularAuthAPI.csproj",
+        "packagesPath": "C:\\Users\\Jorge Turbi\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\Jorge Turbi\\Desktop\\angular_auth\\AngularAuthAPI\\AngularAuthAPI\\obj\\",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages",
-          "C:\\Program Files (x86)\\Microsoft\\Xamarin\\NuGet\\",
-          "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
-        ],
         "configFilePaths": [
-          "C:\\Users\\jturbi\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Xamarin.Offline.config"
+          "C:\\Users\\Jorge Turbi\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
           "net6.0"
         ],
         "sources": {
-          "C:\\Program Files\\dotnet\\library-packs": {},
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -65,6 +58,10 @@
               "target": "Package",
               "version": "[6.0.19, )"
             },
+            "NETCore.MailKit": {
+              "target": "Package",
+              "version": "[2.1.0, )"
+            },
             "Swashbuckle.AspNetCore": {
               "target": "Package",
               "version": "[6.5.0, )"
@@ -89,7 +86,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\7.0.202\\RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\7.0.203\\RuntimeIdentifierGraph.json"
         }
       }
     }

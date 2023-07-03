@@ -1,4 +1,5 @@
 using AngularAuthAPI.Context;
+using AngularAuthAPI.UtilityService;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,6 +29,7 @@ builder.Services.AddDbContext<AppDbContext>(Options =>
 {
     Options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServerConnStr"));
 });
+builder.Services.AddScoped<IEmailService, EmailServices>();
 
 builder.Services.AddAuthentication(x =>
 {
@@ -43,8 +45,8 @@ builder.Services.AddAuthentication(x =>
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("veryverysecret....")),
         ValidateAudience = false,
-        ValidateIssuer=false,
-
+        ValidateIssuer = false,
+        ClockSkew = TimeSpan.Zero
 };
 });
 var app = builder.Build();

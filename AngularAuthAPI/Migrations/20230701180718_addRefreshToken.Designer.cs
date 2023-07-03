@@ -4,6 +4,7 @@ using AngularAuthAPI.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AngularAuthAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20230701180718_addRefreshToken")]
+    partial class addRefreshToken
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -47,12 +49,6 @@ namespace AngularAuthAPI.Migrations
 
                     b.Property<DateTime>("RefreshTokenExpiryTime")
                         .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("ResetPasswordExpiry")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ResetPasswordToken")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Role")
                         .HasColumnType("nvarchar(max)");
