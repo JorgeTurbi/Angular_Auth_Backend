@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
+using System.Runtime.CompilerServices;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -32,6 +33,7 @@ namespace AngularAuthAPI.Controllers
         [HttpPost("authenticate")]
         public async Task<IActionResult> Authenticate([FromBody] User userObj)
         {
+          
             if (userObj == null) return BadRequest();
             var user = await _context.Users
                 .FirstOrDefaultAsync(x => x.Username == userObj.Username);
@@ -40,6 +42,7 @@ namespace AngularAuthAPI.Controllers
             if(!PasswordHasher.VerifyPassword(userObj.Password,user.Password))
                 return BadRequest("Password is Incorrect");
 
+          
             user.Token = CreateJwt(user);
             var newAccessToken = user.Token;
             var newRefreshToken = CreateRefreshToken();
@@ -53,7 +56,7 @@ namespace AngularAuthAPI.Controllers
                 RefreshToken = newRefreshToken
             });
         }
-
+        [Authorize]
         [HttpPost("register")]
         public async Task<IActionResult> RegisterUser([FromBody] User userObj)
         {
@@ -73,7 +76,7 @@ namespace AngularAuthAPI.Controllers
                 return BadRequest(new {Message=pass.ToString() });
             
             userObj.Password = PasswordHasher.HashPassword(userObj.Password);
-            userObj.Role = "User";
+            //userObj.Role = "User";
             userObj.Token = "";
             await _context.Users.AddAsync(userObj);
             await _context.SaveChangesAsync();
@@ -100,11 +103,13 @@ namespace AngularAuthAPI.Controllers
 
        private string CreateJwt(User user)
         {
+           
             var jwtTokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes("veryverysecret....");
             var identity = new ClaimsIdentity(new Claim[]
             {
-                new Claim(ClaimTypes.Role,user.Role),
+                //user.Role
+                new Claim(ClaimTypes.Role,user.IdRoles.ToString()),
                 new Claim(ClaimTypes.Name,$"{user.Username}")
 
             });
@@ -121,8 +126,6 @@ namespace AngularAuthAPI.Controllers
             var token=jwtTokenHandler.CreateToken(tokenDescriptor);
             return jwtTokenHandler.WriteToken(token);
         }
-
-
 
         private string CreateRefreshToken()
         {
@@ -169,9 +172,11 @@ namespace AngularAuthAPI.Controllers
         [HttpGet]
         public async Task<ActionResult<User>> GetAllUser()
         {
-            return Ok(await _context.Users.ToListAsync());
+            return Ok(await _context.Users.Include(u => u.Roles).ToListAsync());
+            //return Ok(await _context.Users.Include(u => u.Roles).ToListAsync());
         }
-
+       
+        [Authorize(Roles="1")]
         [HttpPost("refresh")]
         public async Task<IActionResult> Refresh(TokenApiDto tokenApiDto)
         {
@@ -197,15 +202,10 @@ namespace AngularAuthAPI.Controllers
                 RefreshToken=newRefreshToken               
             
             });
-
-
-
-
-           
+                                
             
         }
-
-
+        
         [HttpPost("send-reset-email/{email}")]
         public async Task<IActionResult> SendEmail(string email)
         {
@@ -268,9 +268,43 @@ namespace AngularAuthAPI.Controllers
 
         }
 
+        [Authorize]
+        [HttpPost("NewRole")]     
+        public  async Task<IActionResult> NewRole(Roles roles)
+        {           
+            try
+            {
+                   
+                await _context.Roles.AddAsync(roles);
+                await _context.SaveChangesAsync();
+             
+            }
+            catch (Exception ex)
+            {
 
+                return BadRequest(ex.Message.ToString());
+             
+            }
+            return Ok(new { Message = "Role Added!" });
+        }
+        [Authorize]
+        [HttpGet("Roles")]
+       public async Task<IActionResult> GetAllRoles()
+        {
+            return Ok(await _context.Roles.Include(a=>a.users).ToListAsync());
+        }
 
+        private async Task<Roles> GetRol(int IdRol)
+        {
+            Roles role = await _context.Roles.FirstOrDefaultAsync(a => a.Id == IdRol);
+            if (role == null)
+                return new Roles();
+            return role;
+        }
 
+    
+     
+        
 
     }
 

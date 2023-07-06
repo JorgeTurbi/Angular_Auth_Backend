@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AngularAuthAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20230702033720_resetpassword")]
-    partial class resetpassword
+    [Migration("20230705002250_versionRoles")]
+    partial class versionRoles
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -23,6 +23,22 @@ namespace AngularAuthAPI.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder, 1L, 1);
+
+            modelBuilder.Entity("AngularAuthAPI.Models.Roles", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Roles");
+                });
 
             modelBuilder.Entity("AngularAuthAPI.Models.User", b =>
                 {
@@ -37,6 +53,9 @@ namespace AngularAuthAPI.Migrations
 
                     b.Property<string>("FirstName")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("IdRoles")
+                        .HasColumnType("int");
 
                     b.Property<string>("LastName")
                         .HasColumnType("nvarchar(max)");
@@ -56,8 +75,8 @@ namespace AngularAuthAPI.Migrations
                     b.Property<string>("ResetPasswordToken")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Role")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int?>("RolesId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Token")
                         .HasColumnType("nvarchar(max)");
@@ -67,7 +86,23 @@ namespace AngularAuthAPI.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("RolesId");
+
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("AngularAuthAPI.Models.User", b =>
+                {
+                    b.HasOne("AngularAuthAPI.Models.Roles", "Roles")
+                        .WithMany("users")
+                        .HasForeignKey("RolesId");
+
+                    b.Navigation("Roles");
+                });
+
+            modelBuilder.Entity("AngularAuthAPI.Models.Roles", b =>
+                {
+                    b.Navigation("users");
                 });
 #pragma warning restore 612, 618
         }
